@@ -49,6 +49,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  * We use the RaspiPreview code to handle the (generic) preview window
  */
 
+// raspivid -t 0 -md 4 -fps 42 -vf -hf -rot 270 -pf high -lev 4.2 -b 62500000 -l -o tcp://0.0.0.0:5000
+// mplayer -x 1296 -y 972 -fps 42 -demuxer h264es -noborder ffmpeg://tcp://192.168.8.70:5000
+
 // We use some GNU extensions (basename)
 #ifndef _GNU_SOURCE
 #define _GNU_SOURCE
@@ -85,6 +88,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RaspiCLI.h"
 #include "RaspiHelpers.h"
 #include "RaspiGPS.h"
+
+#include "RaspiControlRouter.h"
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/epoll.h>
 
 #include <semaphore.h>
 
@@ -2258,6 +2266,40 @@ static int pause_and_test_abort(RASPIVID_STATE *state, int pause)
 }
 
 
+// Update camnera function parameter
+static int raspicamcontrol_router_parameters(RASPIVID_STATE *state, uint32_t parameters)
+{
+   int command, cmd_data;
+
+   // fprintf(stderr, "Command received %x\n", parameters);
+
+   // Spilt information from parameters
+   command = (parameters & 0x0F000000) >> (32 - 8);
+   cmd_data = parameters & 0x00FFFFFF;
+
+   // Check Negative Value
+   if(cmd_data & 0x800000)
+      cmd_data = - (cmd_data & 0x7FFFFF);
+
+   // Check Value Range
+   if((cmd_data >= setting_vector[command].val_min)  && 
+       (cmd_data <= setting_vector[command].val_max)) {
+    
+      // Set Max Value for Mode Function
+      if((command >= 7) && (command <= 10) && (cmd_data == setting_vector[command].val_max))
+         cmd_data = 0x7fffffff;
+
+      // Launch function from table
+      setting_vector[command].function(state->camera_component, cmd_data);
+   }
+
+   return 0;
+}
+
+static int fd;
+static int epoll_fd;
+
+
 /**
  * Function to wait in various ways (depending on settings)
  *
@@ -2269,6 +2311,16 @@ static int wait_for_next_change(RASPIVID_STATE *state)
 {
    int keep_running = 1;
    static int64_t complete_time = -1;
+
+   #define MAX_EVENTS 5
+   #define READ_SIZE 4
+   char read_buffer[READ_SIZE];
+   uint32_t command_data = 0;
+   struct epoll_event *events;
+   
+   int i, j, n;
+
+   events = calloc(MAX_EVENTS, sizeof(struct epoll_event));
 
    // Have we actually exceeded our timeout?
    int64_t current_time =  get_microseconds64()/1000;
@@ -2289,9 +2341,40 @@ static int wait_for_next_change(RASPIVID_STATE *state)
    case WAIT_METHOD_FOREVER:
    {
       // We never return from this. Expect a ctrl-c to exit or abort.
-      while (!state->callback_data.abort)
+      while (!state->callback_data.abort) {
+         // Wait for Epoll event
+         fprintf(stdout, "Blocking and waiting for epoll event...\n");
+         n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1);
+         // fprintf(stderr, "Received epoll event\n");
+         for(i = 0; i < n; i++) {
+            if((events[i].events & EPOLLERR) ||
+               (events[i].events & EPOLLHUP) ||
+               (!(events[i].events & EPOLLIN)))
+            {
+               fprintf(stderr, "epoll error\n");
+               close(events[i].data.fd);
+               continue;
+            }
+            else if(fd == events[i].data.fd)
+            {
+               // fprintf(stderr, "Epoll OK\n");
+
+               // Read from char_driver
+               read(events[0].data.fd, read_buffer, READ_SIZE);
+
+               // fprintf(stderr, "Command received %x %x %x %x\n", read_buffer[0], read_buffer[1], read_buffer[2], read_buffer[3]);
+               for(j = 0; j < READ_SIZE; j++) {
+                  command_data |= (uint32_t) ((read_buffer[j] & 0xFF) << (8 * j));
+               }
+
+               // Pass parameter to Camera Function Router
+               raspicamcontrol_router_parameters(state, command_data);
+            }
+         }
+
          // Have a sleep so we don't hog the CPU.
          vcos_sleep(ABORT_INTERVAL);
+      }
 
       return 0;
    }
@@ -2407,6 +2490,32 @@ int main(int argc, const char **argv)
    MMAL_PORT_T *splitter_input_port = NULL;
    MMAL_PORT_T *splitter_output_port = NULL;
    MMAL_PORT_T *splitter_preview_port = NULL;
+
+
+   static const char *camera_char = "/dev/camera_cdev";
+   struct epoll_event event;
+
+   /*** Open Character Device Driver ***/
+   fd = open(camera_char, O_RDWR);
+   if(fd == -1)
+      fprintf(stderr, "fopen() failed: %s\n", strerror(errno));
+
+   // Create Epoll Mode
+   epoll_fd = epoll_create1(0);
+   if(epoll_fd == -1)
+      fprintf(stderr, "Failed to create epoll file descriptor\n");
+
+   event.events = EPOLLIN | EPOLLET;
+   event.data.fd = fd;
+ 
+   // Add Epoll Control
+   if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &event))
+   {
+      fprintf(stderr, "Failed to add file descriptor to epoll\n");
+      close(epoll_fd);
+      close(fd);
+   }
+   /************************************/
 
    bcm_host_init();
 
@@ -2954,6 +3063,9 @@ error:
 
    if (state.common_settings.gps)
       raspi_gps_shutdown(state.common_settings.verbose);
+
+   close(epoll_fd);
+   close(fd);
 
    return exit_code;
 }

@@ -31,6 +31,7 @@ add_definitions("-DGIT_TAINTED=${GIT_TAINTED}")
 
 set (COMMON_SOURCES
    RaspiCamControl.c
+   RaspiCamControlStub.c
    RaspiCLI.c
    RaspiPreview.c
    RaspiCommonSettings.c
