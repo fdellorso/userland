@@ -1,0 +1,31 @@
+{
+  "product": "rec360",
+  "model": "full",
+  "serial": "",
+  "hostname": "",
+  "wifi": {
+    "mode": "direct",
+    "ssid": "",
+    "password": ""
+  },
+  "peripheral": {
+    "stepper": "",
+    "turntable": "",
+    "light": "",
+    "laser": "",
+    "hall": "",
+    "gyroscope": "",
+    "rtc": "",
+    "button": ""
+  },
+  "archive": {
+    "path": "",
+    "prefix": ""
+  },
+  "channel": {
+    "gui_in": "/dev/cdev_gui_in",
+    "gui_out": "/dev/cdev_gui_out",
+    "camera_in": "/dev/cdev_cam_in",
+    "camera_out": "/dev/cdev_cam_out"
+  }
+}

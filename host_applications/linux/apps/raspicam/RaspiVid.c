@@ -89,6 +89,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RaspiHelpers.h"
 #include "RaspiGPS.h"
 
+// #include "jsmn/jsmn.h"
 #include "RaspiControlRouter.h"
 #include <fcntl.h>
 #include <errno.h>
@@ -143,6 +144,7 @@ typedef struct RASPIVID_STATE_S RASPIVID_STATE;
 typedef struct
 {
    FILE *file_handle;                   /// File handle to write buffer data to.
+   // FILE *record_handle;    /// File handle to record video to file.
    RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
    int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
    char *cb_buff;                       /// Circular buffer
@@ -2269,28 +2271,38 @@ static int pause_and_test_abort(RASPIVID_STATE *state, int pause)
 // Update camnera function parameter
 static int raspicamcontrol_router_parameters(RASPIVID_STATE *state, uint32_t parameters)
 {
-   int command, cmd_data;
+   int category, command, cmd_data;
 
    // fprintf(stderr, "Command received %x\n", parameters);
 
    // Spilt information from parameters
+   category = (parameters & 0xF0000000) >> (32 - 4);
    command = (parameters & 0x0F000000) >> (32 - 8);
    cmd_data = parameters & 0x00FFFFFF;
 
-   // Check Negative Value
-   if(cmd_data & 0x800000)
-      cmd_data = - (cmd_data & 0x7FFFFF);
+   if (category == 10)
+   {
+      // Check Negative Value
+      if (cmd_data & 0x800000)
+         cmd_data = -(cmd_data & 0x7FFFFF);
 
-   // Check Value Range
-   if((cmd_data >= setting_vector[command].val_min)  && 
-       (cmd_data <= setting_vector[command].val_max)) {
+      // Check Value Range
+      if ((cmd_data >= setting_vector_1[command].val_min) &&
+          (cmd_data <= setting_vector_1[command].val_max))
+      {
     
       // Set Max Value for Mode Function
-      if((command >= 7) && (command <= 10) && (cmd_data == setting_vector[command].val_max))
+         if ((command >= 7) && (command <= 10) && (cmd_data == setting_vector_1[command].val_max))
          cmd_data = 0x7fffffff;
 
       // Launch function from table
-      setting_vector[command].function(state->camera_component, cmd_data);
+         setting_vector_1[command].function(state->camera_component, cmd_data);
+      }
+   }
+
+   if (category == 11)
+   {
+      
    }
 
    return 0;
@@ -2471,6 +2483,28 @@ static int wait_for_next_change(RASPIVID_STATE *state)
    return keep_running;
 }
 
+// static int jsoneq(const char *json, jsmntok_t *tok, const char *s)
+// {
+//    if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+//        strncmp(json + tok->start, s, tok->end - tok->start) == 0)
+//    {
+//       return 0;
+//    }
+//    return -1;
+// }
+
+// static int jsonext(const char *json, jsmntok_t *tok, int r)
+// {
+//    int i;
+
+//    for (i = 1; i < r; i++)
+//    {
+//       printf("%.*s\n", tok[i + 1].end - tok[i + 1].start, json + tok[i + 1].start);
+//    }
+
+//    return 0;
+// }
+
 /**
  * main
  */
@@ -2491,9 +2525,28 @@ int main(int argc, const char **argv)
    MMAL_PORT_T *splitter_output_port = NULL;
    MMAL_PORT_T *splitter_preview_port = NULL;
 
+   // int fdjson;
+   // char buffer[1024];
+   // int r;
+   // jsmn_parser json_parser;
+   // jsmntok_t json_token[128]; /* We expect no more than 128 tokens */
 
-   static const char *camera_char = "/dev/camera_cdev";
+   static const char *camera_char = "/dev/cdev_cam_out";
+   // char *camera_char = "";
    struct epoll_event event;
+
+   //
+   // fdjson = open("/home/dietpi/rec360/config/rec360_system.json", O_RDWR);
+   // if (fdjson)
+   // {
+   //    read(fdjson, buffer, sizeof(buffer));
+   //    close(fdjson);
+   // }
+
+   // jsmn_init(&json_parser);
+   // r = jsmn_parse(&json_parser, buffer, strlen(buffer), json_token,
+   //                sizeof(json_token) / sizeof(json_token[0]));
+   // jsonext(buffer, json_token, r);
 
    /*** Open Character Device Driver ***/
    fd = open(camera_char, O_RDWR);
@@ -2716,6 +2769,7 @@ int main(int argc, const char **argv)
          }
 
          state.callback_data.file_handle = NULL;
+         // state.callback_data.record_handle = NULL;
 
          if (state.common_settings.filename)
          {

@@ -2,3 +2,7 @@
 	path = opencv
 	url = https://github.com/opencv/opencv
 	ignore = dirty
+[submodule "jsmn"]
+	path = jsmn
+	url = https://github.com/zserge/jsmn
+	ignore = dirty

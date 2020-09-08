@@ -14,7 +14,9 @@ include_directories(${PROJECT_SOURCE_DIR}/host_applications/linux/libs/sm)
 
 # Find the commit hash of the build and pass to the compiler
 execute_process(
-  COMMAND git log -1 --abbrev=12 --format=%h
+  # COMMAND git log -1 --abbrev=12 --format=%h
+  COMMAND bash "-c" "git log -1 --abbrev=12 --format=%h"
+  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
   OUTPUT_VARIABLE GIT_COMMIT_ID
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
