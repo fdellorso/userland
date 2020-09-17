@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/bin/raspivid",
+            "args": [],
+            "targetArchitecture": "ARM",
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "launchCompleteCommand": "exec-run",
+            "linux": {
+                "MIMode": "gdb",
+                "miDebuggerPath": "gdb-multiarch"
+            },
+            "setupCommands": [
+                {"text": "-enable-pretty-printing"},
+                {"text": "target extended-remote 192.168.8.70:3333"},
+                {"text": "set remote exec-file /home/dietpi/rec360/bin/raspivid"},
+                {"text": "file '${workspaceFolder}/build/bin/raspivid'"},
+                {"text": "b main"}
+            ],
+            "customLaunchSetupCommands": [
+            ],
+            "logging": {
+                "engineLogging": true,
+                "moduleLoad": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        }
+    ]
+}

@@ -30,8 +30,8 @@ static struct
 
 camera_func2_t setting_vector_2[] = {
     /* FUNCTION         */
-    /* 0  Record Video  */ 0,
-    /* 1  Stop Video    */ 0,
+    /* 0  Record Video  */ raspicmdcustom_record_video,
+    /* 1  Stop Video    */ raspicmdcustom_stop_video,
     /* 2  Take Picture  */ 0,
     /* 3  Available     */ 0,
     /* 4  Available     */ 0,

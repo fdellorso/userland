@@ -82,6 +82,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "interface/mmal/util/mmal_connection.h"
 #include "interface/mmal/mmal_parameters_camera.h"
 
+#include "RaspiVid.h"
 #include "RaspiCommonSettings.h"
 #include "RaspiCamControl.h"
 #include "RaspiPreview.h"
@@ -89,8 +90,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "RaspiHelpers.h"
 #include "RaspiGPS.h"
 
-// #include "jsmn/jsmn.h"
 #include "RaspiControlRouter.h"
+#include "RaspiJson.h"
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/epoll.h>
@@ -136,106 +137,106 @@ enum
    WAIT_METHOD_FOREVER     /// Run/record forever
 };
 
-// Forward
-typedef struct RASPIVID_STATE_S RASPIVID_STATE;
+// // Forward
+// typedef struct RASPIVID_STATE_S RASPIVID_STATE;
 
-/** Struct used to pass information in encoder port userdata to callback
- */
-typedef struct
-{
-   FILE *file_handle;                   /// File handle to write buffer data to.
-   // FILE *record_handle;    /// File handle to record video to file.
-   RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
-   int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
-   char *cb_buff;                       /// Circular buffer
-   int   cb_len;                        /// Length of buffer
-   int   cb_wptr;                       /// Current write pointer
-   int   cb_wrap;                       /// Has buffer wrapped at least once?
-   int   cb_data;                       /// Valid bytes in buffer
-#define IFRAME_BUFSIZE (60*1000)
-   int   iframe_buff[IFRAME_BUFSIZE];          /// buffer of iframe pointers
-   int   iframe_buff_wpos;
-   int   iframe_buff_rpos;
-   char  header_bytes[29];
-   int  header_wptr;
-   FILE *imv_file_handle;               /// File handle to write inline motion vectors to.
-   FILE *raw_file_handle;               /// File handle to write raw data to.
-   int  flush_buffers;
-   FILE *pts_file_handle;               /// File timestamps
-} PORT_USERDATA;
+// /** Struct used to pass information in encoder port userdata to callback
+//  */
+// typedef struct
+// {
+//    FILE *file_handle;                   /// File handle to write buffer data to.
+//    FILE *record_handle;    /// File handle to record video to file.
+//    RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
+//    int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
+//    char *cb_buff;                       /// Circular buffer
+//    int   cb_len;                        /// Length of buffer
+//    int   cb_wptr;                       /// Current write pointer
+//    int   cb_wrap;                       /// Has buffer wrapped at least once?
+//    int   cb_data;                       /// Valid bytes in buffer
+// #define IFRAME_BUFSIZE (60*1000)
+//    int   iframe_buff[IFRAME_BUFSIZE];          /// buffer of iframe pointers
+//    int   iframe_buff_wpos;
+//    int   iframe_buff_rpos;
+//    char  header_bytes[29];
+//    int  header_wptr;
+//    FILE *imv_file_handle;               /// File handle to write inline motion vectors to.
+//    FILE *raw_file_handle;               /// File handle to write raw data to.
+//    int  flush_buffers;
+//    FILE *pts_file_handle;               /// File timestamps
+// } PORT_USERDATA;
 
-/** Possible raw output formats
- */
-typedef enum
-{
-   RAW_OUTPUT_FMT_YUV = 0,
-   RAW_OUTPUT_FMT_RGB,
-   RAW_OUTPUT_FMT_GRAY,
-} RAW_OUTPUT_FMT;
+// /** Possible raw output formats
+//  */
+// typedef enum
+// {
+//    RAW_OUTPUT_FMT_YUV = 0,
+//    RAW_OUTPUT_FMT_RGB,
+//    RAW_OUTPUT_FMT_GRAY,
+// } RAW_OUTPUT_FMT;
 
-/** Structure containing all state information for the current run
- */
-struct RASPIVID_STATE_S
-{
-   RASPICOMMONSETTINGS_PARAMETERS common_settings;     /// Common settings
-   int timeout;                        /// Time taken before frame is grabbed and app then shuts down. Units are milliseconds
-   MMAL_FOURCC_T encoding;             /// Requested codec video encoding (MJPEG or H264)
-   int bitrate;                        /// Requested bitrate
-   int framerate;                      /// Requested frame rate (fps)
-   int intraperiod;                    /// Intra-refresh period (key frame rate)
-   int quantisationParameter;          /// Quantisation parameter - quality. Set bitrate 0 and set this for variable bitrate
-   int bInlineHeaders;                  /// Insert inline headers to stream (SPS, PPS)
-   int demoMode;                       /// Run app in demo mode
-   int demoInterval;                   /// Interval between camera settings changes
-   int immutableInput;                 /// Flag to specify whether encoder works in place or creates a new buffer. Result is preview can display either
-   /// the camera output or the encoder output (with compression artifacts)
-   int profile;                        /// H264 profile to use for encoding
-   int level;                          /// H264 level to use for encoding
-   int waitMethod;                     /// Method for switching between pause and capture
+// /** Structure containing all state information for the current run
+//  */
+// struct RASPIVID_STATE_S
+// {
+//    RASPICOMMONSETTINGS_PARAMETERS common_settings;     /// Common settings
+//    int timeout;                        /// Time taken before frame is grabbed and app then shuts down. Units are milliseconds
+//    MMAL_FOURCC_T encoding;             /// Requested codec video encoding (MJPEG or H264)
+//    int bitrate;                        /// Requested bitrate
+//    int framerate;                      /// Requested frame rate (fps)
+//    int intraperiod;                    /// Intra-refresh period (key frame rate)
+//    int quantisationParameter;          /// Quantisation parameter - quality. Set bitrate 0 and set this for variable bitrate
+//    int bInlineHeaders;                  /// Insert inline headers to stream (SPS, PPS)
+//    int demoMode;                       /// Run app in demo mode
+//    int demoInterval;                   /// Interval between camera settings changes
+//    int immutableInput;                 /// Flag to specify whether encoder works in place or creates a new buffer. Result is preview can display either
+//    /// the camera output or the encoder output (with compression artifacts)
+//    int profile;                        /// H264 profile to use for encoding
+//    int level;                          /// H264 level to use for encoding
+//    int waitMethod;                     /// Method for switching between pause and capture
 
-   int onTime;                         /// In timed cycle mode, the amount of time the capture is on per cycle
-   int offTime;                        /// In timed cycle mode, the amount of time the capture is off per cycle
+//    int onTime;                         /// In timed cycle mode, the amount of time the capture is on per cycle
+//    int offTime;                        /// In timed cycle mode, the amount of time the capture is off per cycle
 
-   int segmentSize;                    /// Segment mode In timed cycle mode, the amount of time the capture is off per cycle
-   int segmentWrap;                    /// Point at which to wrap segment counter
-   int segmentNumber;                  /// Current segment counter
-   int splitNow;                       /// Split at next possible i-frame if set to 1.
-   int splitWait;                      /// Switch if user wants splited files
+//    int segmentSize;                    /// Segment mode In timed cycle mode, the amount of time the capture is off per cycle
+//    int segmentWrap;                    /// Point at which to wrap segment counter
+//    int segmentNumber;                  /// Current segment counter
+//    int splitNow;                       /// Split at next possible i-frame if set to 1.
+//    int splitWait;                      /// Switch if user wants splited files
 
-   RASPIPREVIEW_PARAMETERS preview_parameters;   /// Preview setup parameters
-   RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
+//    RASPIPREVIEW_PARAMETERS preview_parameters;   /// Preview setup parameters
+//    RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
 
-   MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
-   MMAL_COMPONENT_T *splitter_component;  /// Pointer to the splitter component
-   MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
-   MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera or splitter to preview
-   MMAL_CONNECTION_T *splitter_connection;/// Pointer to the connection from camera to splitter
-   MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
+//    MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
+//    MMAL_COMPONENT_T *splitter_component;  /// Pointer to the splitter component
+//    MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
+//    MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera or splitter to preview
+//    MMAL_CONNECTION_T *splitter_connection;/// Pointer to the connection from camera to splitter
+//    MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
 
-   MMAL_POOL_T *splitter_pool; /// Pointer to the pool of buffers used by splitter output port 0
-   MMAL_POOL_T *encoder_pool; /// Pointer to the pool of buffers used by encoder output port
+//    MMAL_POOL_T *splitter_pool; /// Pointer to the pool of buffers used by splitter output port 0
+//    MMAL_POOL_T *encoder_pool; /// Pointer to the pool of buffers used by encoder output port
 
-   PORT_USERDATA callback_data;        /// Used to move data to the encoder callback
+//    PORT_USERDATA callback_data;        /// Used to move data to the encoder callback
 
-   int bCapturing;                     /// State of capture/pause
-   int bCircularBuffer;                /// Whether we are writing to a circular buffer
+//    int bCapturing;                     /// State of capture/pause
+//    int bCircularBuffer;                /// Whether we are writing to a circular buffer
 
-   int inlineMotionVectors;             /// Encoder outputs inline Motion Vectors
-   char *imv_filename;                  /// filename of inline Motion Vectors output
-   int raw_output;                      /// Output raw video from camera as well
-   RAW_OUTPUT_FMT raw_output_fmt;       /// The raw video format
-   char *raw_filename;                  /// Filename for raw video output
-   int intra_refresh_type;              /// What intra refresh type to use. -1 to not set.
-   int frame;
-   char *pts_filename;
-   int save_pts;
-   int64_t starttime;
-   int64_t lasttime;
+//    int inlineMotionVectors;             /// Encoder outputs inline Motion Vectors
+//    char *imv_filename;                  /// filename of inline Motion Vectors output
+//    int raw_output;                      /// Output raw video from camera as well
+//    RAW_OUTPUT_FMT raw_output_fmt;       /// The raw video format
+//    char *raw_filename;                  /// Filename for raw video output
+//    int intra_refresh_type;              /// What intra refresh type to use. -1 to not set.
+//    int frame;
+//    char *pts_filename;
+//    int save_pts;
+//    int64_t starttime;
+//    int64_t lasttime;
 
-   bool netListen;
-   MMAL_BOOL_T addSPSTiming;
-   int slices;
-};
+//    bool netListen;
+//    MMAL_BOOL_T addSPSTiming;
+//    int slices;
+// };
 
 
 /// Structure to cross reference H264 profile strings against the MMAL parameter equivalent
@@ -1392,6 +1393,16 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
                    fdatasync(fileno(pData->file_handle));
                }
 
+               if(pData->record_handle != NULL)
+               {
+                  fwrite(buffer->data, 1, buffer->length, pData->record_handle);
+                  if(pData->flush_buffers)
+                  {
+                     fflush(pData->record_handle);
+                     fdatasync(fileno(pData->record_handle));
+                  }
+               }
+
                if (pData->pstate->save_pts &&
                   !(buffer->flags & MMAL_BUFFER_HEADER_FLAG_CONFIG) &&
                   buffer->pts != MMAL_TIME_UNKNOWN &&
@@ -2273,7 +2284,7 @@ static int raspicamcontrol_router_parameters(RASPIVID_STATE *state, uint32_t par
 {
    int category, command, cmd_data;
 
-   // fprintf(stderr, "Command received %x\n", parameters);
+   // printf("Command received %x\n", parameters);
 
    // Spilt information from parameters
    category = (parameters & 0xF0000000) >> (32 - 4);
@@ -2302,7 +2313,7 @@ static int raspicamcontrol_router_parameters(RASPIVID_STATE *state, uint32_t par
 
    if (category == 11)
    {
-      
+      setting_vector_2[command](state);
    }
 
    return 0;
@@ -2374,7 +2385,7 @@ static int wait_for_next_change(RASPIVID_STATE *state)
                // Read from char_driver
                read(events[0].data.fd, read_buffer, READ_SIZE);
 
-               // fprintf(stderr, "Command received %x %x %x %x\n", read_buffer[0], read_buffer[1], read_buffer[2], read_buffer[3]);
+               // printf("Command received %x %x %x %x\n", read_buffer[0], read_buffer[1], read_buffer[2], read_buffer[3]);
                for(j = 0; j < READ_SIZE; j++) {
                   command_data |= (uint32_t) ((read_buffer[j] & 0xFF) << (8 * j));
                }
@@ -2483,27 +2494,14 @@ static int wait_for_next_change(RASPIVID_STATE *state)
    return keep_running;
 }
 
-// static int jsoneq(const char *json, jsmntok_t *tok, const char *s)
-// {
-//    if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
-//        strncmp(json + tok->start, s, tok->end - tok->start) == 0)
-//    {
-//       return 0;
-//    }
-//    return -1;
-// }
-
-// static int jsonext(const char *json, jsmntok_t *tok, int r)
-// {
-//    int i;
-
-//    for (i = 1; i < r; i++)
-//    {
-//       printf("%.*s\n", tok[i + 1].end - tok[i + 1].start, json + tok[i + 1].start);
-//    }
-
-//    return 0;
-// }
+static char* replace_char(char* str, char find, char replace){
+    char *current_pos = strchr(str,find);
+    while (current_pos){
+        *current_pos = replace;
+        current_pos = strchr(current_pos,find);
+    }
+    return str;
+}
 
 /**
  * main
@@ -2525,28 +2523,18 @@ int main(int argc, const char **argv)
    MMAL_PORT_T *splitter_output_port = NULL;
    MMAL_PORT_T *splitter_preview_port = NULL;
 
-   // int fdjson;
-   // char buffer[1024];
-   // int r;
-   // jsmn_parser json_parser;
-   // jsmntok_t json_token[128]; /* We expect no more than 128 tokens */
-
-   static const char *camera_char = "/dev/cdev_cam_out";
-   // char *camera_char = "";
+   char camera_char[128];
+   // static const char *camera_char = "/dev/cdev_cam_out";
    struct epoll_event event;
 
-   //
-   // fdjson = open("/home/dietpi/rec360/config/rec360_system.json", O_RDWR);
-   // if (fdjson)
-   // {
-   //    read(fdjson, buffer, sizeof(buffer));
-   //    close(fdjson);
-   // }
+   if(json_extract("camera_out", camera_char, "/home/dietpi/rec360/config/rec360_system.json")) {
+      printf("Failed to manage JSON\n");
+      return EX_IOERR;
+   }
+   replace_char(camera_char, '\n', '\0');
 
-   // jsmn_init(&json_parser);
-   // r = jsmn_parse(&json_parser, buffer, strlen(buffer), json_token,
-   //                sizeof(json_token) / sizeof(json_token[0]));
-   // jsonext(buffer, json_token, r);
+   // setting_vector_2[0](&state);
+   // return EX_OK;
 
    /*** Open Character Device Driver ***/
    fd = open(camera_char, O_RDWR);
@@ -2769,7 +2757,7 @@ int main(int argc, const char **argv)
          }
 
          state.callback_data.file_handle = NULL;
-         // state.callback_data.record_handle = NULL;
+         state.callback_data.record_handle = NULL;
 
          if (state.common_settings.filename)
          {
@@ -3083,6 +3071,8 @@ error:
       // problems if we have already closed the file!
       if (state.callback_data.file_handle && state.callback_data.file_handle != stdout)
          fclose(state.callback_data.file_handle);
+      if (state.callback_data.record_handle)
+         fclose(state.callback_data.record_handle);
       if (state.callback_data.imv_file_handle && state.callback_data.imv_file_handle != stdout)
          fclose(state.callback_data.imv_file_handle);
       if (state.callback_data.pts_file_handle && state.callback_data.pts_file_handle != stdout)

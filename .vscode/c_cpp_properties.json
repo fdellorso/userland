@@ -3,13 +3,14 @@
         {
             "name": "userland",
             "includePath": [
+                "/home/francesco/cross-pi-gcc-9.3.0-0/lib/gcc/arm-linux-gnueabihf/9.3.0/include/",
                 "${workspaceFolder}/**",
-                "/usr/include"
+                "${workspaceFolder}/jsmn"
             ],
-            "compilerPath": "/usr/bin/gcc",
+            "compilerPath": "/home/francesco/cross-pi-gcc-9.3.0-0/bin/arm-linux-gnueabihf-gcc",
             "cStandard": "gnu11",
             "cppStandard": "c++17",
-            "configurationProvider": "ms-vscode.cmake-tools"
+            "intelliSenseMode": "gcc-arm"
         }
     ],
     "version": 4

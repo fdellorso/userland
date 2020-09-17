@@ -11,6 +11,7 @@ SET( CMAKE_EXE_LINKER_FLAGS "-Wl,--no-as-needed" )
 include_directories(${PROJECT_SOURCE_DIR}/host_applications/linux/libs/bcm_host/include)
 include_directories(${PROJECT_SOURCE_DIR}/host_applications/linux/apps/raspicam/)
 include_directories(${PROJECT_SOURCE_DIR}/host_applications/linux/libs/sm)
+include_directories(${PROJECT_SOURCE_DIR}/jsmn)
 
 # Find the commit hash of the build and pass to the compiler
 execute_process(
@@ -34,11 +35,13 @@ add_definitions("-DGIT_TAINTED=${GIT_TAINTED}")
 set (COMMON_SOURCES
    RaspiCamControl.c
    RaspiCamControlStub.c
+   RaspiCmdCustom.c
    RaspiCLI.c
    RaspiPreview.c
    RaspiCommonSettings.c
    RaspiHelpers.c
    RaspiGPS.c
+   RaspiJson.c
    libgps_loader.c)
 
 if(NOT ARM64)

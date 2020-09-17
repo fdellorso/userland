@@ -18,14 +18,19 @@
     "rtc": "",
     "button": ""
   },
-  "archive": {
-    "path": "",
-    "prefix": ""
-  },
   "channel": {
     "gui_in": "/dev/cdev_gui_in",
     "gui_out": "/dev/cdev_gui_out",
     "camera_in": "/dev/cdev_cam_in",
     "camera_out": "/dev/cdev_cam_out"
+  },
+  "archive": {
+    "path": "/home/dietpi/rec360/gallery/",
+    "prefix": ""
+  },
+  "camera": {
+    "res_width": "",
+    "res_height": "",
+    "rotation": ""
   }
 }

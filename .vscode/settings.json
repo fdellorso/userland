@@ -1,7 +1,14 @@
 {
-    "cmake.configureOnOpen": false,
-    "cmake.configureArgs": [
-        "-DCMAKE_TOOLCHAIN_FILE=./makefiles/cmake/toolchains/arm-linux-gnueabihf.cmake",
-        "-DARM64=OFF"
-    ]
+    "files.watcherExclude": {
+        // "**/.git/objects/**": true,
+        // "**/.git/subtree-cache/**": true,
+        "**/.git/**": true,
+        "**/node_modules/**": true,
+        "**/.hg/**": true
+    },
+    "C_Cpp.intelliSenseCacheSize": 1024,
+    "[c]": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "xaver.clang-format"
+    }
 }

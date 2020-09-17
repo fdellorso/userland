@@ -9,5 +9,8 @@
 			"raspicamcontrol.h": "c",
 			"mmal.h": "c"
 		}
-	}
+	},
+	"clang-format.language.java.enable": false,
+	"clang-format.language.javascript.enable": false,
+	"clang-format.language.typescript.enable": false
 }
