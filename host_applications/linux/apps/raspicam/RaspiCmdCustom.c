@@ -57,6 +57,9 @@ int raspicmdcustom_record_video(void *data)
         return -1;
     }
 
+    fwrite(state->callback_data.header_bytes, 1, state->callback_data.header_wptr, state->callback_data.record_handle);
+    fwrite(state->callback_data.iframe_buff, 1, state->callback_data.iframe_buff_wpos, state->callback_data.record_handle);
+
     // fclose(state->callback_data.record_handle);
 
     return 0;

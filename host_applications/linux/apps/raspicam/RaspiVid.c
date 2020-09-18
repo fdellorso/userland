@@ -417,7 +417,7 @@ static void default_status(RASPIVID_STATE *state)
    state->segmentWrap = 0; // Point at which to wrap segment number back to 1. 0 = no wrap
    state->splitNow = 0;
    state->splitWait = 0;
-   state->inlineMotionVectors = 0;
+   state->inlineMotionVectors = 0; // Motion Detection
    state->intra_refresh_type = -1;
    state->frame = 0;
    state->save_pts = 0;
@@ -1235,28 +1235,47 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
       vcos_assert(pData->file_handle);
       if(pData->pstate->inlineMotionVectors) vcos_assert(pData->imv_file_handle);
 
+      if(buffer->flags & MMAL_BUFFER_HEADER_FLAG_CONFIG)
+      {
+         if(pData->header_wptr + buffer->length > sizeof(pData->header_bytes))
+         {
+            vcos_log_error("Error in header bytes\n");
+         }
+         else
+         {
+            // These are the header bytes, save them for final output
+            mmal_buffer_header_mem_lock(buffer);
+            memcpy(pData->header_bytes + pData->header_wptr, buffer->data, buffer->length);
+            // fprintf(stdout, "%u\n", buffer->length);
+            // fprintf(stdout, "%x %x %x %x %x\n", buffer->data[0], buffer->data[1], buffer->data[2], buffer->data[3], buffer->data[4]);
+            mmal_buffer_header_mem_unlock(buffer);
+            pData->header_wptr += buffer->length;
+         }
+      }
+
       if (pData->cb_buff)
       {
          int space_in_buff = pData->cb_len - pData->cb_wptr;
          int copy_to_end = space_in_buff > buffer->length ? buffer->length : space_in_buff;
          int copy_to_start = buffer->length - copy_to_end;
 
-         if(buffer->flags & MMAL_BUFFER_HEADER_FLAG_CONFIG)
-         {
-            if(pData->header_wptr + buffer->length > sizeof(pData->header_bytes))
-            {
-               vcos_log_error("Error in header bytes\n");
-            }
-            else
-            {
-               // These are the header bytes, save them for final output
-               mmal_buffer_header_mem_lock(buffer);
-               memcpy(pData->header_bytes + pData->header_wptr, buffer->data, buffer->length);
-               mmal_buffer_header_mem_unlock(buffer);
-               pData->header_wptr += buffer->length;
-            }
-         }
-         else if((buffer->flags & MMAL_BUFFER_HEADER_FLAG_CODECSIDEINFO))
+         // if(buffer->flags & MMAL_BUFFER_HEADER_FLAG_CONFIG)
+         // {
+         //    if(pData->header_wptr + buffer->length > sizeof(pData->header_bytes))
+         //    {
+         //       vcos_log_error("Error in header bytes\n");
+         //    }
+         //    else
+         //    {
+         //       // These are the header bytes, save them for final output
+         //       mmal_buffer_header_mem_lock(buffer);
+         //       memcpy(pData->header_bytes + pData->header_wptr, buffer->data, buffer->length);
+         //       mmal_buffer_header_mem_unlock(buffer);
+         //       pData->header_wptr += buffer->length;
+         //    }
+         // }
+         // else if((buffer->flags & MMAL_BUFFER_HEADER_FLAG_CODECSIDEINFO))
+         if((buffer->flags & MMAL_BUFFER_HEADER_FLAG_CODECSIDEINFO))
          {
             // Do something with the inline motion vectors...
          }
@@ -1385,22 +1404,24 @@ static void encoder_buffer_callback(MMAL_PORT_T *port, MMAL_BUFFER_HEADER_T *buf
                }
             }
             else
-            {
+            {               
                bytes_written = fwrite(buffer->data, 1, buffer->length, pData->file_handle);
+
+               if((buffer->flags & MMAL_BUFFER_HEADER_FLAG_KEYFRAME) && (pData->record_handle != NULL))
+               {
+                  pData->start_record = 1;
+               }
+
+               // FDO: When Streameing copy buffer to a file in filesystem
+               if((pData->record_handle != NULL) && pData->start_record)
+               {
+                  fwrite(buffer->data, 1, buffer->length, pData->record_handle);
+               }
+
                if(pData->flush_buffers)
                {
                    fflush(pData->file_handle);
                    fdatasync(fileno(pData->file_handle));
-               }
-
-               if(pData->record_handle != NULL)
-               {
-                  fwrite(buffer->data, 1, buffer->length, pData->record_handle);
-                  if(pData->flush_buffers)
-                  {
-                     fflush(pData->record_handle);
-                     fdatasync(fileno(pData->record_handle));
-                  }
                }
 
                if (pData->pstate->save_pts &&
@@ -2284,7 +2305,7 @@ static int raspicamcontrol_router_parameters(RASPIVID_STATE *state, uint32_t par
 {
    int category, command, cmd_data;
 
-   // printf("Command received %x\n", parameters);
+   // fprintf(stdout, "Command received %x\n", parameters);
 
    // Spilt information from parameters
    category = (parameters & 0xF0000000) >> (32 - 4);
@@ -2304,7 +2325,7 @@ static int raspicamcontrol_router_parameters(RASPIVID_STATE *state, uint32_t par
     
       // Set Max Value for Mode Function
          if ((command >= 7) && (command <= 10) && (cmd_data == setting_vector_1[command].val_max))
-         cmd_data = 0x7fffffff;
+            cmd_data = 0x7fffffff;
 
       // Launch function from table
          setting_vector_1[command].function(state->camera_component, cmd_data);
@@ -2385,7 +2406,7 @@ static int wait_for_next_change(RASPIVID_STATE *state)
                // Read from char_driver
                read(events[0].data.fd, read_buffer, READ_SIZE);
 
-               // printf("Command received %x %x %x %x\n", read_buffer[0], read_buffer[1], read_buffer[2], read_buffer[3]);
+               // fprintf(stdout, "Command received %x %x %x %x\n", read_buffer[0], read_buffer[1], read_buffer[2], read_buffer[3]);
                for(j = 0; j < READ_SIZE; j++) {
                   command_data |= (uint32_t) ((read_buffer[j] & 0xFF) << (8 * j));
                }
@@ -2528,7 +2549,7 @@ int main(int argc, const char **argv)
    struct epoll_event event;
 
    if(json_extract("camera_out", camera_char, "/home/dietpi/rec360/config/rec360_system.json")) {
-      printf("Failed to manage JSON\n");
+      fprintf(stderr, "Failed to manage JSON\n");
       return EX_IOERR;
    }
    replace_char(camera_char, '\n', '\0');
@@ -2758,6 +2779,7 @@ int main(int argc, const char **argv)
 
          state.callback_data.file_handle = NULL;
          state.callback_data.record_handle = NULL;
+         state.callback_data.start_record = 0;
 
          if (state.common_settings.filename)
          {

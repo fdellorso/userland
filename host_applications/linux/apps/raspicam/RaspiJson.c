@@ -44,7 +44,7 @@ int json_extract(char *search, char *output, char *jsonfile)
     memset(buffer, '\0', sizeof(buffer));
 
     if((fdjson = open(jsonfile, O_RDONLY)) == 0) {
-        printf("Failed to open JSON\n");
+        fprintf(stderr, "Failed to open JSON\n");
         return -1;
     }
     read(fdjson, buffer, sizeof(buffer));
@@ -53,13 +53,13 @@ int json_extract(char *search, char *output, char *jsonfile)
     jsmn_init(&json_parser);
     r = jsmn_parse(&json_parser, buffer, strlen(buffer), json_token, sizeof(json_token) / sizeof(json_token[0]));
     if (r < 0) {
-        printf("Failed to parse JSON: %d\n", r);
+        fprintf(stderr, "Failed to parse JSON: %d\n", r);
         return -1;
     }
 
     jsonext(buffer, json_token, r, search, output);
     if(!output[0]) {
-        printf("Failed to extract JSON: %d\n", r);
+        fprintf(stderr, "Failed to extract JSON: %d\n", r);
         return -1;
     }
     

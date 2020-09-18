@@ -18,6 +18,7 @@ typedef struct
 {
    FILE *file_handle;                   /// File handle to write buffer data to.
    FILE *record_handle;    /// File handle to record video to file.
+   int start_record;
    RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
    int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
    char *cb_buff;                       /// Circular buffer

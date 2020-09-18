@@ -8,7 +8,7 @@
     },
     "C_Cpp.intelliSenseCacheSize": 1024,
     "[c]": {
-        "editor.formatOnSave": true,
+        // "editor.formatOnSave": true,
         "editor.defaultFormatter": "xaver.clang-format"
     }
 }
