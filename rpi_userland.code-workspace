@@ -11,6 +11,50 @@
 		},
 		"clang-format.language.java.enable": false,
 		"clang-format.language.javascript.enable": false,
-		"clang-format.language.typescript.enable": false
+		"clang-format.language.typescript.enable": false,
+		"todo-tree.tree.autoRefresh": true,
+    	"todo-tree.highlights.defaultHighlight": {
+        	"type": "text-and-comment"
+    	},
+		"todo-tree.general.tags": [
+			"BUG",
+			"FIXME",
+			"TODO"
+		],
+		"todo-tree.highlights.customHighlight": {
+			"BUG": {
+				"icon": "bug",
+				"iconColour": "red",
+				"type": "line",
+				"background": "red",
+				"foreground": "black"
+			},
+			"FIXME": {
+				"icon": "flame",
+				"iconColour": "yellow",
+				"type": "line",
+				"background": "yellow",
+				"foreground": "black"
+			},
+			"TODO": {
+				"icon": "check",
+				"iconColour": "green",
+				"type": "line",
+				"background": "green",
+				"foreground": "black"
+			}
+		},
+		"todo-tree.filtering.excludeGlobs": [
+			"**/vendor/**",
+			"**/node_modules/**",
+			"**/dist/**",
+			"**/bower_components/**",
+			"**/build/**",
+			"**/.vscode/**",
+			"**/.github/**",
+			"**/_output/**",
+			"**/*.min.*",
+			"**/*.map"
+		]
 	}
 }

@@ -79,3 +79,8 @@ int raspicmdcustom_stop_video(void *data)
 
     return 0;
 }
+
+int raspicmdcustom_take_picture(void *data)
+{
+
+}

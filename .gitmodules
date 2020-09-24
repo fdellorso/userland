@@ -6,3 +6,7 @@
 	path = jsmn
 	url = https://github.com/zserge/jsmn
 	ignore = dirty
+[submodule "RaspberryPi"]
+	path = RaspberryPi
+	url = https://github.com/ArduCAM/RaspberryPi
+	ignore = dirty

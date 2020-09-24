@@ -55,7 +55,7 @@
 		{
 			"type": "shell",
 			"label": "Copy to Target",
-			"command": "scp ${workspaceFolder}/build/bin/raspivid dietpi@192.168.8.70:/home/dietpi/rec360/bin",
+			"command": "scp ${workspaceFolder}/build/bin/raspivid dietpi@192.168.1.70:/home/dietpi/rec360/bin",
 			"args": [
 			],
 			"options": {
@@ -80,7 +80,7 @@
 		{
 			"type": "shell",
 			"label": "Copy to Json",
-			"command": "scp ${workspaceFolder}/json/rec360_system.json dietpi@192.168.8.70:/home/dietpi/rec360/config",
+			"command": "scp ${workspaceFolder}/json/rec360_system.json dietpi@192.168.1.70:/home/dietpi/rec360/config",
 			"args": [
 			],
 			"options": {

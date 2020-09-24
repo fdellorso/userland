@@ -1988,6 +1988,9 @@ static MMAL_STATUS_T create_encoder_component(RASPIVID_STATE *state)
    encoder_input = encoder->input[0];
    encoder_output = encoder->output[0];
 
+   // Modify from @fdellorso - result 1x input, 1x output
+   // fprintf(stdout, "Input: %u\tOutput: %u\n", encoder->input_num, encoder->output_num);
+
    // We want same format on input and output
    mmal_format_copy(encoder_output->format, encoder_input->format);
 
