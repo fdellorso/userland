@@ -1,13 +1,22 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#include "interface/vcos/vcos.h"
+
 #include "interface/mmal/mmal.h"
+#include "interface/mmal/mmal_logging.h"
+#include "interface/mmal/util/mmal_util_params.h"
 #include "interface/mmal/util/mmal_connection.h"
 
 #include "RaspiCommonSettings.h"
 #include "RaspiCamControl.h"
 #include "RaspiPreview.h"
+#include "RaspiHelpers.h"
 
+// Standard port setting for the camera component
+#define MMAL_CAMERA_PREVIEW_PORT 0
+#define MMAL_CAMERA_VIDEO_PORT 1
+#define MMAL_CAMERA_CAPTURE_PORT 2
 
 // Forward
 typedef struct RASPIVID_STATE_S RASPIVID_STATE;
@@ -106,7 +115,69 @@ struct RASPIVID_STATE_S
    int64_t starttime;
    int64_t lasttime;
 
+   int fd;
+   int epoll_fd;
+
    bool netListen;
    MMAL_BOOL_T addSPSTiming;
    int slices;
+};
+
+// Forward
+typedef struct RASPISTILL_STATE_S RASPISTILL_STATE;
+
+/** Struct used to pass information in encoder port userdata to callback
+ */
+typedef struct
+{
+   FILE *file_handle;                   /// File handle to write buffer data to.
+   VCOS_SEMAPHORE_T complete_semaphore; /// semaphore which is posted when we reach end of frame (indicates end of capture or fault)
+   RASPISTILL_STATE *pstate;            /// pointer to our state in case required in callback
+} PORT_STILL_USERDATA;
+
+/** Structure containing all state information for the current run
+ */
+struct RASPISTILL_STATE_S
+{
+   RASPICOMMONSETTINGS_PARAMETERS common_settings;     /// Common settings
+   int timeout;                        /// Time taken before frame is grabbed and app then shuts down. Units are milliseconds
+   int quality;                        /// JPEG quality setting (1-100)
+   int wantRAW;                        /// Flag for whether the JPEG metadata also contains the RAW bayer image
+   char *linkname;                     /// filename of output file
+   int frameStart;                     /// First number of frame output counter
+   MMAL_PARAM_THUMBNAIL_CONFIG_T thumbnailConfig;
+   int demoMode;                       /// Run app in demo mode
+   int demoInterval;                   /// Interval between camera settings changes
+   MMAL_FOURCC_T encoding;             /// Encoding to use for the output file.
+   // const char *exifTags[MAX_USER_EXIF_TAGS]; /// Array of pointers to tags supplied from the command line
+   int numExifTags;                    /// Number of supplied tags
+   int enableExifTags;                 /// Enable/Disable EXIF tags in output
+   int timelapse;                      /// Delay between each picture in timelapse mode. If 0, disable timelapse
+   int fullResPreview;                 /// If set, the camera preview port runs at capture resolution. Reduces fps.
+   int frameNextMethod;                /// Which method to use to advance to next frame
+   int useGL;                          /// Render preview using OpenGL
+   int glCapture;                      /// Save the GL frame-buffer instead of camera output
+   int burstCaptureMode;               /// Enable burst mode
+   int datetime;                       /// Use DateTime instead of frame#
+   int timestamp;                      /// Use timestamp instead of frame#
+   int restart_interval;               /// JPEG restart interval. 0 for none.
+   int total_photos;
+   int current_photo;
+
+   RASPIPREVIEW_PARAMETERS preview_parameters;    /// Preview setup parameters
+   RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
+
+   MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
+   MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
+   MMAL_COMPONENT_T *null_sink_component; /// Pointer to the null sink component
+   MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera to preview
+   MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
+
+   MMAL_POOL_T *encoder_pool; /// Pointer to the pool of buffers used by encoder output port
+
+   PORT_STILL_USERDATA callback_data;        /// Used to move data to the encoder callback
+
+   int fd;
+
+   // RASPITEX_STATE raspitex_state; /// GL renderer state and parameters
 };

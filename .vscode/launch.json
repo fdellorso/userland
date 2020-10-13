@@ -22,8 +22,9 @@
             },
             "setupCommands": [
                 {"text": "-enable-pretty-printing"},
-                {"text": "target extended-remote 192.168.8.70:3333"},
+                {"text": "target extended-remote 192.168.1.70:3333"},
                 {"text": "set remote exec-file /home/dietpi/rec360/bin/raspivid"},
+                {"text": "set args -t 0 -md 4 -n -l -o tcp://0.0.0.0:5000"},
                 {"text": "file '${workspaceFolder}/build/bin/raspivid'"},
                 {"text": "b main"}
             ],

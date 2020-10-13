@@ -4,8 +4,7 @@
 typedef int (*camera_func_t)(MMAL_COMPONENT_T *camera, int parameter);
 typedef int (*camera_func2_t)(void *data);
 
-static struct
-{
+static struct {
     camera_func_t function;
     int val_min;
     int val_max;
@@ -26,14 +25,15 @@ static struct
     /* 12 Roi           */ {raspicamcontrol_set_ROI_stub, 0, 4},
     /* 13 Shutter       */ {raspicamcontrol_set_shutter_speed, 0, 6000},
     /* 14 Focus         */ {0, 0, 1025},
-    /* 15 Isup          */ {0, 0, 1}};
+    /* 15 Isup          */ {0, 0, 1}
+    };
 
 camera_func2_t setting_vector_2[] = {
     /* FUNCTION         */
     /* 0  Record Video  */ raspicmdcustom_record_video,
     /* 1  Stop Video    */ raspicmdcustom_stop_video,
     /* 2  Take Picture  */ raspicmdcustom_take_picture,
-    /* 3  Available     */ 0,
+    /* 3  Auto Focus    */ raspicmdcustom_auto_focus,
     /* 4  Available     */ 0,
     /* 5  Available     */ 0,
     /* 6  Available     */ 0,
@@ -45,4 +45,5 @@ camera_func2_t setting_vector_2[] = {
     /* 12 Available     */ 0,
     /* 13 Available     */ 0,
     /* 14 Available     */ 0,
-    /* 15 Available     */ 0};
+    /* 15 Available     */ 0
+    };
