@@ -1,10 +1,13 @@
 #include <time.h>
 #include <sys/stat.h>
 
-#include "RaspiVid.h"
+#include "Raspi360.h"
 #include "RaspiCmdCustom.h"
 
 #include "RaspiJson.h"
+
+// #include "opencv2/core/core_c.h"
+// #include "opencv2/imgproc/imgproc_c.h"
 
 #define VIDEO   0
 #define PHOTO   1
@@ -77,7 +80,7 @@ int raspicmdcustom_record_video(void *data)
     }
 
     fwrite(state->callback_data.header_bytes, 1, state->callback_data.header_wptr, state->callback_data.record_handle);
-    fwrite(state->callback_data.iframe_buff, 1, state->callback_data.iframe_buff_wpos, state->callback_data.record_handle);
+    // fwrite(state->callback_data.iframe_buff, 1, state->callback_data.iframe_buff_wpos, state->callback_data.record_handle);
 
     return 0;
 }
@@ -182,5 +185,41 @@ int raspicmdcustom_take_picture(void *data)
 
 int raspicmdcustom_auto_focus(void *data)
 {
+    int num, q;
 
+    RASPISTILL_STATE *state = (RASPISTILL_STATE *) data;
+
+    // There is a possibility that shutter needs to be set each loop.
+    if (mmal_status_to_int(mmal_port_parameter_set_uint32(state->camera_component->control, MMAL_PARAMETER_SHUTTER_SPEED, state->camera_parameters.shutter_speed) != MMAL_SUCCESS))
+        vcos_log_error("Unable to set shutter speed");
+
+
+    // Send all the buffers to the camera output port
+    num = mmal_queue_length(state->raw_pool->queue);
+
+    for (q=0; q<num; q++)
+    {
+        MMAL_BUFFER_HEADER_T *buffer = mmal_queue_get(state->raw_pool->queue);
+
+        if (!buffer)
+            vcos_log_error("Unable to get a required buffer %d from pool queue", q);
+
+        if (mmal_port_send_buffer(state->camera_component->output[MMAL_CAMERA_PREVIEW_PORT], buffer)!= MMAL_SUCCESS)
+            vcos_log_error("Unable to send a buffer to camera output port (%d)", q);
+    }
+
+    if (mmal_port_parameter_set_boolean(state->camera_component->output[MMAL_CAMERA_PREVIEW_PORT], MMAL_PARAMETER_CAPTURE, 1) != MMAL_SUCCESS)
+    {
+        vcos_log_error("%s: Failed to start capture", __func__);
+    }
+    else
+    {
+        // Wait for capture to complete
+        // For some reason using vcos_semaphore_wait_timeout sometimes returns immediately with bad parameter error
+        // even though it appears to be all correct, so reverting to untimed one until figure out why its erratic
+        vcos_semaphore_wait(&state->callback_raw_data.complete_semaphore);
+        if (state->common_settings.verbose) fprintf(stderr, "Finished capture\n");
+    }    
+
+    return 0;
 }

@@ -191,13 +191,13 @@ void raspipreview_destroy(RASPIPREVIEW_PARAMETERS *state)
  */
 void raspipreview_set_defaults(RASPIPREVIEW_PARAMETERS *state)
 {
-   state->wantPreview = 1;
+   state->wantPreview = 0;
    state->wantFullScreenPreview = 1;
    state->opacity = 255;
    state->previewWindow.x = 0;
    state->previewWindow.y = 0;
-   state->previewWindow.width = 1024;
-   state->previewWindow.height = 768;
+   state->previewWindow.width = 640;
+   state->previewWindow.height = 480;
    state->preview_component = NULL;
    state->display_num = -1;
 }

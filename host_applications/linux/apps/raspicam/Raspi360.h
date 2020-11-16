@@ -30,21 +30,21 @@ typedef struct
    int start_record;
    RASPIVID_STATE *pstate;              /// pointer to our state in case required in callback
    int abort;                           /// Set to 1 in callback if an error occurs to attempt to abort the capture
-   char *cb_buff;                       /// Circular buffer
-   int   cb_len;                        /// Length of buffer
-   int   cb_wptr;                       /// Current write pointer
-   int   cb_wrap;                       /// Has buffer wrapped at least once?
-   int   cb_data;                       /// Valid bytes in buffer
-#define IFRAME_BUFSIZE (60*1000)
-   int   iframe_buff[IFRAME_BUFSIZE];          /// buffer of iframe pointers
-   int   iframe_buff_wpos;
-   int   iframe_buff_rpos;
+   // char *cb_buff;                       /// Circular buffer
+   // int   cb_len;                        /// Length of buffer
+   // int   cb_wptr;                       /// Current write pointer
+   // int   cb_wrap;                       /// Has buffer wrapped at least once?
+   // int   cb_data;                       /// Valid bytes in buffer
+// #define IFRAME_BUFSIZE (60*1000)
+//    int   iframe_buff[IFRAME_BUFSIZE];          /// buffer of iframe pointers
+//    int   iframe_buff_wpos;
+//    int   iframe_buff_rpos;
    char  header_bytes[29];
    int  header_wptr;
-   FILE *imv_file_handle;               /// File handle to write inline motion vectors to.
-   FILE *raw_file_handle;               /// File handle to write raw data to.
+   // FILE *imv_file_handle;               /// File handle to write inline motion vectors to.
+   // FILE *raw_file_handle;               /// File handle to write raw data to.
    int  flush_buffers;
-   FILE *pts_file_handle;               /// File timestamps
+   // FILE *pts_file_handle;               /// File timestamps
 } PORT_USERDATA;
 
 /** Possible raw output formats
@@ -68,8 +68,8 @@ struct RASPIVID_STATE_S
    int intraperiod;                    /// Intra-refresh period (key frame rate)
    int quantisationParameter;          /// Quantisation parameter - quality. Set bitrate 0 and set this for variable bitrate
    int bInlineHeaders;                  /// Insert inline headers to stream (SPS, PPS)
-   int demoMode;                       /// Run app in demo mode
-   int demoInterval;                   /// Interval between camera settings changes
+   // int demoMode;                       /// Run app in demo mode
+   // int demoInterval;                   /// Interval between camera settings changes
    int immutableInput;                 /// Flag to specify whether encoder works in place or creates a new buffer. Result is preview can display either
    /// the camera output or the encoder output (with compression artifacts)
    int profile;                        /// H264 profile to use for encoding
@@ -79,48 +79,50 @@ struct RASPIVID_STATE_S
    int onTime;                         /// In timed cycle mode, the amount of time the capture is on per cycle
    int offTime;                        /// In timed cycle mode, the amount of time the capture is off per cycle
 
-   int segmentSize;                    /// Segment mode In timed cycle mode, the amount of time the capture is off per cycle
-   int segmentWrap;                    /// Point at which to wrap segment counter
-   int segmentNumber;                  /// Current segment counter
-   int splitNow;                       /// Split at next possible i-frame if set to 1.
-   int splitWait;                      /// Switch if user wants splited files
+   // int segmentSize;                    /// Segment mode In timed cycle mode, the amount of time the capture is off per cycle
+   // int segmentWrap;                    /// Point at which to wrap segment counter
+   // int segmentNumber;                  /// Current segment counter
+   // int splitNow;                       /// Split at next possible i-frame if set to 1.
+   // int splitWait;                      /// Switch if user wants splited files
 
    RASPIPREVIEW_PARAMETERS preview_parameters;   /// Preview setup parameters
    RASPICAM_CAMERA_PARAMETERS camera_parameters; /// Camera setup parameters
 
    MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
-   MMAL_COMPONENT_T *splitter_component;  /// Pointer to the splitter component
+   // MMAL_COMPONENT_T *splitter_component;  /// Pointer to the splitter component
    MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
-   MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera or splitter to preview
-   MMAL_CONNECTION_T *splitter_connection;/// Pointer to the connection from camera to splitter
+   // MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera or splitter to preview
+   // MMAL_CONNECTION_T *splitter_connection;/// Pointer to the connection from camera to splitter
    MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
 
-   MMAL_POOL_T *splitter_pool; /// Pointer to the pool of buffers used by splitter output port 0
+   // MMAL_POOL_T *splitter_pool; /// Pointer to the pool of buffers used by splitter output port 0
    MMAL_POOL_T *encoder_pool; /// Pointer to the pool of buffers used by encoder output port
 
    PORT_USERDATA callback_data;        /// Used to move data to the encoder callback
 
    int bCapturing;                     /// State of capture/pause
-   int bCircularBuffer;                /// Whether we are writing to a circular buffer
+   // int bCircularBuffer;                /// Whether we are writing to a circular buffer
 
-   int inlineMotionVectors;             /// Encoder outputs inline Motion Vectors
-   char *imv_filename;                  /// filename of inline Motion Vectors output
-   int raw_output;                      /// Output raw video from camera as well
-   RAW_OUTPUT_FMT raw_output_fmt;       /// The raw video format
-   char *raw_filename;                  /// Filename for raw video output
+   // int inlineMotionVectors;             /// Encoder outputs inline Motion Vectors
+   // char *imv_filename;                  /// filename of inline Motion Vectors output
+   // int raw_output;                      /// Output raw video from camera as well
+   // RAW_OUTPUT_FMT raw_output_fmt;       /// The raw video format
+   // char *raw_filename;                  /// Filename for raw video output
    int intra_refresh_type;              /// What intra refresh type to use. -1 to not set.
    int frame;
-   char *pts_filename;
-   int save_pts;
-   int64_t starttime;
-   int64_t lasttime;
+   // char *pts_filename;
+   // int save_pts;
+   // int64_t starttime;
+   // int64_t lasttime;
 
    int fd;
    int epoll_fd;
 
    bool netListen;
-   MMAL_BOOL_T addSPSTiming;
+   // MMAL_BOOL_T addSPSTiming;
    int slices;
+
+   char *json_file;
 };
 
 // Forward
@@ -131,6 +133,8 @@ typedef struct RASPISTILL_STATE_S RASPISTILL_STATE;
 typedef struct
 {
    FILE *file_handle;                   /// File handle to write buffer data to.
+   uint8_t *raw_buffer;
+   int buffer_pointer; 
    VCOS_SEMAPHORE_T complete_semaphore; /// semaphore which is posted when we reach end of frame (indicates end of capture or fault)
    RASPISTILL_STATE *pstate;            /// pointer to our state in case required in callback
 } PORT_STILL_USERDATA;
@@ -146,8 +150,8 @@ struct RASPISTILL_STATE_S
    char *linkname;                     /// filename of output file
    int frameStart;                     /// First number of frame output counter
    MMAL_PARAM_THUMBNAIL_CONFIG_T thumbnailConfig;
-   int demoMode;                       /// Run app in demo mode
-   int demoInterval;                   /// Interval between camera settings changes
+   // int demoMode;                       /// Run app in demo mode
+   // int demoInterval;                   /// Interval between camera settings changes
    MMAL_FOURCC_T encoding;             /// Encoding to use for the output file.
    // const char *exifTags[MAX_USER_EXIF_TAGS]; /// Array of pointers to tags supplied from the command line
    int numExifTags;                    /// Number of supplied tags
@@ -158,6 +162,7 @@ struct RASPISTILL_STATE_S
    int useGL;                          /// Render preview using OpenGL
    int glCapture;                      /// Save the GL frame-buffer instead of camera output
    int burstCaptureMode;               /// Enable burst mode
+   int onlyLuma;                       /// Only output the luma / Y plane of the YUV data
    int datetime;                       /// Use DateTime instead of frame#
    int timestamp;                      /// Use timestamp instead of frame#
    int restart_interval;               /// JPEG restart interval. 0 for none.
@@ -169,13 +174,15 @@ struct RASPISTILL_STATE_S
 
    MMAL_COMPONENT_T *camera_component;    /// Pointer to the camera component
    MMAL_COMPONENT_T *encoder_component;   /// Pointer to the encoder component
-   MMAL_COMPONENT_T *null_sink_component; /// Pointer to the null sink component
-   MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera to preview
+   // MMAL_COMPONENT_T *null_sink_component; /// Pointer to the null sink component
+   // MMAL_CONNECTION_T *preview_connection; /// Pointer to the connection from camera to preview
    MMAL_CONNECTION_T *encoder_connection; /// Pointer to the connection from camera to encoder
 
    MMAL_POOL_T *encoder_pool; /// Pointer to the pool of buffers used by encoder output port
+   MMAL_POOL_T *raw_pool;              /// Pointer to the pool of buffers used by camera stills port
 
    PORT_STILL_USERDATA callback_data;        /// Used to move data to the encoder callback
+   PORT_STILL_USERDATA callback_raw_data;        /// Used to move data to the encoder callback
 
    int fd;
 

@@ -39,8 +39,47 @@ elif [ "$1" = "--native" ]; then
 	cmake -DCMAKE_BUILD_TYPE=$BUILDTYPE ../../..
 	shift
 	make -j `nproc` $*
+elif [ "$1" = "--opencv" ]; then
+	# OpenCV Cross Compile
+		#   -DBUILD_opencv_apps=OFF \
+		#   -DBUILD_LIST=imgproc \
+	    #   -DBUILD_SHARED_LIBS=OFF \
+	mkdir -p build_cv/arm-linux/$BUILDSUBDIR
+	pushd build_cv/arm-linux/$BUILDSUBDIR
+	cmake -DCMAKE_TOOLCHAIN_FILE=../../../opencv/platforms/linux/arm-gnueabi.toolchain.cmake \
+		  -DCPU_BASELINE=VFPV2 \
+		  -DBUILD_TESTS=OFF \
+  		  -DBUILD_PERF_TESTS=OFF \
+  	      -DBUILD_EXAMPLES=OFF \
+		  -DBUILD_opencv_androidcamera=OFF \
+		  -DBUILD_opencv_calib3d=OFF \
+		  -DBUILD_opencv_contrib=OFF \
+		  -DBUILD_opencv_core=ON \
+		  -DBUILD_opencv_dynamicuda=OFF \
+		  -DBUILD_opencv_features2d=OFF \
+		  -DBUILD_opencv_flann=OFF \
+		  -DBUILD_opencv_gpu=OFF \
+		  -DBUILD_opencv_highgui=OFF \
+		  -DBUILD_opencv_imgproc=ON \
+		  -DBUILD_opencv_java=OFF \
+		  -DBUILD_opencv_legacy=OFF \
+		  -DBUILD_opencv_ml=OFF \
+		  -DBUILD_opencv_nonfree=OFF \
+		  -DBUILD_opencv_objdetect=OFF \
+		  -DBUILD_opencv_ocl=OFF \
+		  -DBUILD_opencv_photo=OFF \
+		  -DBUILD_opencv_python=OFF \
+		  -DBUILD_opencv_stitching=OFF \
+		  -DBUILD_opencv_superres=OFF \
+		  -DBUILD_opencv_ts=OFF \
+		  -DBUILD_opencv_video=OFF \
+		  -DBUILD_opencv_videostab=OFF \
+		  -DBUILD_opencv_viz=OFF \
+		  -DBUILD_opencv_world=OFF \
+		  ../../../opencv
+	make -j `nproc`
 else
-	# Cross compile on a more capable machine
+	Cross compile on a more capable machine
 	mkdir -p build/arm-linux/$BUILDSUBDIR
 	pushd build/arm-linux/$BUILDSUBDIR
 	cmake -DCMAKE_TOOLCHAIN_FILE=$CMAKE_TOOLCHAIN_FILE -DCMAKE_BUILD_TYPE=$BUILDTYPE -DARM64=$ARM64 ../../..

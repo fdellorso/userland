@@ -1,13 +1,27 @@
 {
     "configurations": [
         {
-            "name": "userland",
+            "name": "Linux",
             "includePath": [
                 "/home/francesco/cross-pi-gcc-9.3.0-0/lib/gcc/arm-linux-gnueabihf/9.3.0/include/",
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/jsmn"
+                "${workspaceFolder}/jsmn",
+                "${workspaceFolder}/opencv/modules/core/include",
+                "${workspaceFolder}/opencv/modules/imgproc/include"
             ],
             "compilerPath": "/home/francesco/cross-pi-gcc-9.3.0-0/bin/arm-linux-gnueabihf-gcc",
+            "cStandard": "gnu11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "gcc-arm"
+        },
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/francescodellorso/Develop/x-tools/armv6-rpi-linux-gnueabihf/lib/gcc/armv6-rpi-linux-gnueabihf/8.3.0/include/",
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/jsmn"
+            ],
+            "compilerPath": "/Users/francescodellorso/Develop/x-tools/armv6-rpi-linux-gnueabihf/bin/arm-linux-gnueabihf-gcc",
             "cStandard": "gnu11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-arm"
